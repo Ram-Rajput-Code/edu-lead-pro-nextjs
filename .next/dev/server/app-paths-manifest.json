@@ -1,0 +1,13 @@
+{
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/leads/[id]/route": "app/api/leads/[id]/route.js",
+  "/api/leads/route": "app/api/leads/route.js",
+  "/api/notifications/route": "app/api/notifications/route.js",
+  "/api/settings/lead-statuses/route": "app/api/settings/lead-statuses/route.js",
+  "/api/settings/task-statuses/route": "app/api/settings/task-statuses/route.js",
+  "/api/stats/route": "app/api/stats/route.js",
+  "/api/tasks/route": "app/api/tasks/route.js",
+  "/api/users/[id]/route": "app/api/users/[id]/route.js",
+  "/api/users/route": "app/api/users/route.js",
+  "/page": "app/page.js"
+}

@@ -1,0 +1,5 @@
+{
+  "name": "EduLead Pro: Multi-Tenant Task & Lead Manager",
+  "description": "A comprehensive SaaS platform for computer institutes to manage tasks, leads, and staff performance with multi-tenant isolation.",
+  "requestFramePermissions": []
+}
