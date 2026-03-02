@@ -16,7 +16,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>{children}
+      <div className="flex justify-center items-center py-3 border-t border-gray-200">
+  <div className="bg-white shadow-lg rounded-xl px-6 py-3 text-gray-700 text-sm hover:shadow-xl transition duration-300">
+    Powered By <span className="font-semibold text-indigo-600">Ram IT Solutions</span>
+  </div>
+</div>
+      </body>
     </html>
   );
 }

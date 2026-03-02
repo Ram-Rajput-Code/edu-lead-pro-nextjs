@@ -49,8 +49,35 @@ function RootLayout({ children }) {
         lang: "en",
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("body", {
             className: __TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$inter_5972bc34$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["default"].className,
-            children: children
-        }, void 0, false, {
+            children: [
+                children,
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "flex justify-center items-center py-3 border-t border-gray-200",
+                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "bg-white shadow-lg rounded-xl px-6 py-3 text-gray-700 text-sm hover:shadow-xl transition duration-300",
+                        children: [
+                            "Powered By ",
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: "font-semibold text-indigo-600",
+                                children: "Ram IT Solutions"
+                            }, void 0, false, {
+                                fileName: "[project]/Documents/MINE/edu-lead-pro-next/src/app/layout.tsx",
+                                lineNumber: 22,
+                                columnNumber: 16
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/Documents/MINE/edu-lead-pro-next/src/app/layout.tsx",
+                        lineNumber: 21,
+                        columnNumber: 3
+                    }, this)
+                }, void 0, false, {
+                    fileName: "[project]/Documents/MINE/edu-lead-pro-next/src/app/layout.tsx",
+                    lineNumber: 20,
+                    columnNumber: 7
+                }, this)
+            ]
+        }, void 0, true, {
             fileName: "[project]/Documents/MINE/edu-lead-pro-next/src/app/layout.tsx",
             lineNumber: 19,
             columnNumber: 7
