@@ -23,7 +23,15 @@ import {
   Workflow,
   Trash2,
   Phone,
-  PhoneCall as PhoneCallIcon
+  PhoneCall as PhoneCallIcon,
+  Filter,
+  Check,
+  ChevronDown,
+  Calendar,
+  Clock,
+  UserPlus,
+  PlusCircle,
+  ClipboardList
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
@@ -36,9 +44,7 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer, 
-  Cell,
-  PieChart,
-  Pie
+  Cell
 } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 import TasksView from '@/components/views/TasksView';
@@ -261,6 +267,10 @@ export default function App() {
 
   if (loading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
 
+  if (currentView === 'register') {
+    return <RegisterView onBack={() => setCurrentView('dashboard')} />;
+  }
+
   if (!token) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -329,10 +339,6 @@ export default function App() {
         </motion.div>
       </div>
     );
-  }
-
-  if (currentView === 'register') {
-    return <RegisterView onBack={() => setCurrentView('dashboard')} />;
   }
 
   return (
@@ -480,7 +486,7 @@ export default function App() {
 
         {/* View Content */}
         <div className="p-4 lg:p-8">
-          {currentView === 'dashboard' && <DashboardView token={token} user={user} />}
+          {currentView === 'dashboard' && <DashboardView token={token} user={user} onNavigate={setCurrentView} />}
           {currentView === 'tasks' && <TasksView token={token} user={user} />}
           {currentView === 'leads' && <LeadsView token={token} user={user} />}
           {currentView === 'staff' && <StaffView token={token} user={user} />}
@@ -580,13 +586,47 @@ function RegisterView({ onBack }: { onBack: () => void }) {
   );
 }
 
-function DashboardView({ token, user }: any) {
+function DashboardView({ token, user, onNavigate }: any) {
   const [stats, setStats] = useState<any>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [statuses, setStatuses] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [filters, setFilters] = useState({
+    members: [] as string[],
+    priorities: [] as string[],
+    statuses: [] as string[]
+  });
+  const [showFilters, setShowFilters] = useState(false);
+
+  const priorities = ['Low', 'Medium', 'High', 'Urgent'];
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [membersRes, statusesRes, activityRes] = await Promise.all([
+          fetch('/api/users', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('/api/settings/lead-statuses', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('/api/activity', { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+        if (membersRes.ok) setMembers(await membersRes.json());
+        if (statusesRes.ok) setStatuses(await statusesRes.json());
+        if (activityRes.ok) setActivities(await activityRes.json());
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchData();
+  }, [token]);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/stats', {
+        const query = new URLSearchParams();
+        if (filters.members.length > 0) query.set('members', filters.members.join(','));
+        if (filters.priorities.length > 0) query.set('priorities', filters.priorities.join(','));
+        if (filters.statuses.length > 0) query.set('statuses', filters.statuses.join(','));
+
+        const res = await fetch(`/api/stats?${query.toString()}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -598,53 +638,209 @@ function DashboardView({ token, user }: any) {
       }
     };
     fetchStats();
-  }, [token]);
+  }, [token, filters]);
+
+  const toggleFilter = (type: keyof typeof filters, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [type]: prev[type].includes(value)
+        ? prev[type].filter(v => v !== value)
+        : [...prev[type], value]
+    }));
+  };
 
   if (!stats) return <div className="p-8 text-center text-slate-500">Loading dashboard...</div>;
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-            <Users size={24} />
+    <div className="space-y-4 sm:space-y-8">
+      {/* Filters Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        
+        <div className="relative">
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+          >
+            <Filter size={16} />
+            Filters
+            {(filters.members.length > 0 || filters.priorities.length > 0 || filters.statuses.length > 0) && (
+              <span className="w-5 h-5 bg-indigo-600 text-white text-[10px] rounded-full flex items-center justify-center">
+                {filters.members.length + filters.priorities.length + filters.statuses.length}
+              </span>
+            )}
+          </button>
+
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-2xl z-30 p-4 space-y-4"
+              >
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Members</p>
+                  <div className="max-h-32 overflow-y-auto space-y-1 pr-2">
+                    {members.map(m => (
+                      <button 
+                        key={m.id}
+                        onClick={() => toggleFilter('members', m.id)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm transition-all",
+                          filters.members.includes(m.id) ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50"
+                        )}
+                      >
+                        {m.name}
+                        {filters.members.includes(m.id) && <Check size={14} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Priority</p>
+                  <div className="flex flex-wrap gap-2">
+                    {priorities.map(p => (
+                      <button 
+                        key={p}
+                        onClick={() => toggleFilter('priorities', p)}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                          filters.priorities.includes(p) ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        )}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Status</p>
+                  <div className="max-h-32 overflow-y-auto space-y-1 pr-2">
+                    {statuses.map(s => (
+                      <button 
+                        key={s._id}
+                        onClick={() => toggleFilter('statuses', s._id)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm transition-all",
+                          filters.statuses.includes(s._id) ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50"
+                        )}
+                      >
+                        {s.label}
+                        {filters.statuses.includes(s._id) && <Check size={14} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex justify-between">
+                  <button 
+                    onClick={() => setFilters({ members: [], priorities: [], statuses: [] })}
+                    className="text-xs text-slate-400 hover:text-slate-600 font-medium"
+                  >
+                    Clear All
+                  </button>
+                  <button 
+                    onClick={() => setShowFilters(false)}
+                    className="text-xs text-indigo-600 font-bold"
+                  >
+                    Done
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
+        <Card 
+          onClick={() => onNavigate('leads')}
+          className="flex items-center gap-3 p-4 sm:p-6 cursor-pointer hover:border-indigo-200 hover:shadow-md transition-all group"
+        >
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            <Users size={20} className="sm:w-6 sm:h-6" />
           </div>
           <div>
-            <p className="text-sm text-slate-500 font-medium">Total Leads</p>
-            <p className="text-xl font-bold text-slate-900">{stats.totalLeads}</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">Total Leads</p>
+            <p className="text-lg sm:text-xl font-bold text-slate-900">{stats.totalLeads}</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
-            <CheckSquare size={24} />
+        <Card 
+          onClick={() => onNavigate('tasks')}
+          className="flex items-center gap-3 p-4 sm:p-6 cursor-pointer hover:border-amber-200 hover:shadow-md transition-all group"
+        >
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            <CheckSquare size={20} className="sm:w-6 sm:h-6" />
           </div>
           <div>
-            <p className="text-sm text-slate-500 font-medium">Total Tasks</p>
-            <p className="text-xl font-bold text-slate-900">{stats.totalTasks}</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">Total Tasks</p>
+            <p className="text-lg sm:text-xl font-bold text-slate-900">{stats.totalTasks}</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
-            <PhoneCall size={24} />
+        <Card className="flex items-center gap-3 p-4 sm:p-6">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+            <PhoneCall size={20} className="sm:w-6 sm:h-6" />
           </div>
           <div>
-            <p className="text-sm text-slate-500 font-medium">Pending Tasks</p>
-            <p className="text-xl font-bold text-slate-900">{stats.pendingTasks}</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">Pending Tasks</p>
+            <p className="text-lg sm:text-xl font-bold text-slate-900">{stats.pendingTasks}</p>
           </div>
         </Card>
       </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <button 
+          onClick={() => onNavigate('leads')}
+          className="flex flex-col items-center justify-center p-4 bg-white border border-slate-200 rounded-2xl hover:border-indigo-200 hover:bg-indigo-50/30 transition-all group shadow-sm"
+        >
+          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+            <UserPlus size={20} />
+          </div>
+          <span className="text-xs font-bold text-slate-700">Add Lead</span>
+        </button>
+        <button 
+          onClick={() => onNavigate('tasks')}
+          className="flex flex-col items-center justify-center p-4 bg-white border border-slate-200 rounded-2xl hover:border-amber-200 hover:bg-amber-50/30 transition-all group shadow-sm"
+        >
+          <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+            <ClipboardList size={20} />
+          </div>
+          <span className="text-xs font-bold text-slate-700">Add Task</span>
+        </button>
+        <button 
+          onClick={() => onNavigate('staff')}
+          className="flex flex-col items-center justify-center p-4 bg-white border border-slate-200 rounded-2xl hover:border-emerald-200 hover:bg-emerald-50/30 transition-all group shadow-sm"
+        >
+          <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+            <Users size={20} />
+          </div>
+          <span className="text-xs font-bold text-slate-700">Manage Staff</span>
+        </button>
+        <button 
+          onClick={() => onNavigate('settings')}
+          className="flex flex-col items-center justify-center p-4 bg-white border border-slate-200 rounded-2xl hover:border-slate-300 hover:bg-slate-50 transition-all group shadow-sm"
+        >
+          <div className="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+            <Settings size={20} />
+          </div>
+          <span className="text-xs font-bold text-slate-700">Settings</span>
+        </button>
+      </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card>
-          <h3 className="text-lg font-bold mb-6">Lead Pipeline</h3>
-          <div className="h-[300px]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-bold mb-4 sm:mb-6">Lead Pipeline</h3>
+          <div className="h-[250px] sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.pipelineData || []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} />
                 <Tooltip 
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px'}}
                 />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {stats.pipelineData?.map((entry: any, index: number) => (
@@ -656,32 +852,60 @@ function DashboardView({ token, user }: any) {
           </div>
         </Card>
 
-        <Card>
-          <h3 className="text-lg font-bold mb-6">Task Distribution</h3>
-          <div className="h-[300px]">
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-bold mb-4 sm:mb-6">Task Distribution</h3>
+          <div className="h-[250px] sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={stats.taskData || []}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
+              <BarChart data={stats.taskData || []}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} />
+                <Tooltip 
+                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px'}}
+                />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                   {stats.taskData?.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={entry.color || '#6366f1'} />
                   ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                />
-              </PieChart>
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
       </div>
+
+      {/* New Feature: Recent Activity Feed */}
+      <Card className="p-4 sm:p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-base sm:text-lg font-bold">Recent Activity</h3>
+          <button className="text-xs font-bold text-indigo-600 hover:underline">View All</button>
+        </div>
+        <div className="space-y-6">
+          {activities.length > 0 ? activities.map((activity) => (
+            <div key={activity._id} className="flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                <Clock size={18} className="text-slate-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-slate-900 font-medium truncate">
+                  <span className="font-bold">{activity.userId?.name || 'System'}</span> {activity.action}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-slate-400">{formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}</span>
+                  {activity.details && (
+                    <>
+                      <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                      <span className="text-xs text-slate-400 truncate">{activity.details}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )) : (
+            <p className="text-center text-slate-400 text-sm py-4">No recent activity</p>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

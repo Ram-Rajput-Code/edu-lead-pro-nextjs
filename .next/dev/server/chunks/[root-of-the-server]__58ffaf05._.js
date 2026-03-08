@@ -436,25 +436,153 @@ async function GET(request) {
         status: 401
     });
     const { tenant_id, role, id: userId } = user;
+    const { searchParams } = new URL(request.url);
+    const memberIds = searchParams.get('members')?.split(',').filter(Boolean);
+    const priorities = searchParams.get('priorities')?.split(',').filter(Boolean);
+    const statusIds = searchParams.get('statuses')?.split(',').filter(Boolean);
     try {
-        const query = role === 'super_admin' ? {} : {
-            tenantId: new __TURBOPACK__imported__module__$5b$externals$5d2f$mongoose__$5b$external$5d$__$28$mongoose$2c$__cjs$2c$__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$mongoose$29$__["default"].Types.ObjectId(tenant_id)
+        const tenantId = new __TURBOPACK__imported__module__$5b$externals$5d2f$mongoose__$5b$external$5d$__$28$mongoose$2c$__cjs$2c$__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$mongoose$29$__["default"].Types.ObjectId(tenant_id);
+        const baseQuery = role === 'super_admin' ? {} : {
+            tenantId
         };
+        // Build dynamic query
+        const filterQuery = {
+            ...baseQuery
+        };
+        if (memberIds && memberIds.length > 0) {
+            filterQuery.assignedTo = {
+                $in: memberIds.map((id)=>new __TURBOPACK__imported__module__$5b$externals$5d2f$mongoose__$5b$external$5d$__$28$mongoose$2c$__cjs$2c$__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$mongoose$29$__["default"].Types.ObjectId(id))
+            };
+        }
+        if (priorities && priorities.length > 0) {
+            filterQuery.priority = {
+                $in: priorities
+            };
+        }
+        // Note: statusId filtering is tricky because Lead and Task have different status models.
+        // We'll apply statusId filtering specifically when counting.
+        const [leadStatusesRaw, taskStatusesRaw] = await Promise.all([
+            __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["LeadStatus"].find({
+                tenantId
+            }),
+            __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["TaskStatus"].find({
+                tenantId
+            })
+        ]);
+        let leadStatuses = leadStatusesRaw;
+        let taskStatuses = taskStatusesRaw;
+        // Fallback: Create default statuses if they don't exist (for older tenants)
+        if (leadStatuses.length === 0 && role !== 'super_admin') {
+            leadStatuses = await __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["LeadStatus"].create([
+                {
+                    tenantId,
+                    label: 'New',
+                    color: '#6366f1'
+                },
+                {
+                    tenantId,
+                    label: 'Contacted',
+                    color: '#f59e0b'
+                },
+                {
+                    tenantId,
+                    label: 'Interested',
+                    color: '#10b981'
+                },
+                {
+                    tenantId,
+                    label: 'Enrolled',
+                    color: '#059669'
+                },
+                {
+                    tenantId,
+                    label: 'Lost',
+                    color: '#ef4444'
+                }
+            ]);
+        }
+        if (taskStatuses.length === 0 && role !== 'super_admin') {
+            taskStatuses = await __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["TaskStatus"].create([
+                {
+                    tenantId,
+                    label: 'To Do',
+                    color: '#94a3b8',
+                    isDefault: true
+                },
+                {
+                    tenantId,
+                    label: 'In Progress',
+                    color: '#6366f1'
+                },
+                {
+                    tenantId,
+                    label: 'Completed',
+                    color: '#10b981'
+                }
+            ]);
+        }
+        // Apply status filter if provided
+        const filteredLeadStatuses = statusIds && statusIds.length > 0 ? leadStatuses.filter((s)=>statusIds.includes(s._id.toString())) : leadStatuses;
+        const filteredTaskStatuses = statusIds && statusIds.length > 0 ? taskStatuses.filter((s)=>statusIds.includes(s._id.toString())) : taskStatuses;
         const [totalLeads, totalTasks, pendingTasks] = await Promise.all([
-            __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["Lead"].countDocuments(query),
-            __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["Task"].countDocuments(query),
+            __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["Lead"].countDocuments({
+                ...filterQuery,
+                ...statusIds && statusIds.length > 0 ? {
+                    statusId: {
+                        $in: statusIds.map((id)=>new __TURBOPACK__imported__module__$5b$externals$5d2f$mongoose__$5b$external$5d$__$28$mongoose$2c$__cjs$2c$__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$mongoose$29$__["default"].Types.ObjectId(id))
+                    }
+                } : {}
+            }),
             __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["Task"].countDocuments({
-                ...query,
+                ...filterQuery,
+                ...statusIds && statusIds.length > 0 ? {
+                    statusId: {
+                        $in: statusIds.map((id)=>new __TURBOPACK__imported__module__$5b$externals$5d2f$mongoose__$5b$external$5d$__$28$mongoose$2c$__cjs$2c$__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$mongoose$29$__["default"].Types.ObjectId(id))
+                    }
+                } : {}
+            }),
+            __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["Task"].countDocuments({
+                ...filterQuery,
                 statusId: {
                     $ne: null
-                }
-            }) // Simplified
+                },
+                ...statusIds && statusIds.length > 0 ? {
+                    statusId: {
+                        $in: statusIds.map((id)=>new __TURBOPACK__imported__module__$5b$externals$5d2f$mongoose__$5b$external$5d$__$28$mongoose$2c$__cjs$2c$__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$mongoose$29$__["default"].Types.ObjectId(id))
+                    }
+                } : {}
+            })
         ]);
-        // More detailed stats could be added here
+        // Pipeline Data (Leads by Status)
+        const pipelineData = await Promise.all(filteredLeadStatuses.map(async (status)=>{
+            const count = await __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["Lead"].countDocuments({
+                ...filterQuery,
+                statusId: status._id
+            });
+            return {
+                name: status.label,
+                count,
+                color: status.color
+            };
+        }));
+        // Task Distribution (Tasks by Status)
+        const taskData = await Promise.all(filteredTaskStatuses.map(async (status)=>{
+            const count = await __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["Task"].countDocuments({
+                ...filterQuery,
+                statusId: status._id
+            });
+            return {
+                name: status.label,
+                value: count,
+                color: status.color
+            };
+        }));
         return __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             totalLeads,
             totalTasks,
-            pendingTasks
+            pendingTasks,
+            pipelineData,
+            taskData
         });
     } catch (err) {
         return __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({

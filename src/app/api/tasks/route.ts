@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import { Task, Notification } from '@/lib/models';
+import { Task, Notification, ActivityLog } from '@/lib/models';
 import { getAuthUser } from '@/lib/auth';
 import mongoose from 'mongoose';
 
@@ -82,6 +82,14 @@ export async function POST(request: Request) {
         link: '/tasks'
       });
     }
+
+    // Log Activity
+    await ActivityLog.create({
+      tenantId: new mongoose.Types.ObjectId(tenant_id),
+      userId: new mongoose.Types.ObjectId(id),
+      action: 'created a new task',
+      details: `Task: ${title}`
+    });
 
     return NextResponse.json({ id: task._id });
   } catch (err: any) {

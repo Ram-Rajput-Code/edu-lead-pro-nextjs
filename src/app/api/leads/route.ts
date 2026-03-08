@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import { Lead } from '@/lib/models';
+import { Lead, ActivityLog } from '@/lib/models';
 import { getAuthUser } from '@/lib/auth';
 import mongoose from 'mongoose';
 
@@ -60,6 +60,15 @@ export async function POST(request: Request) {
         performedBy: new mongoose.Types.ObjectId(userId)
       }]
     });
+
+    // Log Activity
+    await ActivityLog.create({
+      tenantId: new mongoose.Types.ObjectId(tenant_id),
+      userId: new mongoose.Types.ObjectId(userId),
+      action: 'created a new lead',
+      details: `Lead: ${name}`
+    });
+
     return NextResponse.json({ id: lead._id });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });

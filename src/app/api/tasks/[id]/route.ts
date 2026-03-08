@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import { Task, Notification } from '@/lib/models';
+import { Task, Notification, ActivityLog } from '@/lib/models';
 import { getAuthUser } from '@/lib/auth';
 import mongoose from 'mongoose';
 
@@ -23,7 +23,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
 
     if (priority) task.priority = priority;
-    if (status_id) task.statusId = new mongoose.Types.ObjectId(status_id);
+    if (status_id) {
+      task.statusId = new mongoose.Types.ObjectId(status_id);
+      // Log Activity
+      await ActivityLog.create({
+        tenantId: new mongoose.Types.ObjectId(tenant_id),
+        userId: new mongoose.Types.ObjectId(user.id),
+        action: 'updated task status',
+        details: `Task: ${task.title}`
+      });
+    }
     
     if (assigned_to !== undefined && (role === 'admin' || role === 'manager' || role === 'super_admin')) {
       const oldAssignee = task.assignedTo?.toString();
@@ -39,6 +48,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           link: '/tasks'
         });
       }
+
+      // Log Activity
+      await ActivityLog.create({
+        tenantId: new mongoose.Types.ObjectId(tenant_id),
+        userId: new mongoose.Types.ObjectId(user.id),
+        action: 'reassigned a task',
+        details: `Task: ${task.title}`
+      });
     }
 
     await task.save();

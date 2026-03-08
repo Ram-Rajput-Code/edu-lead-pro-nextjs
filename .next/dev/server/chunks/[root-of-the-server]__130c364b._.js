@@ -516,6 +516,13 @@ async function POST(request) {
                 link: '/tasks'
             });
         }
+        // Log Activity
+        await __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$src$2f$lib$2f$models$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["ActivityLog"].create({
+            tenantId: new __TURBOPACK__imported__module__$5b$externals$5d2f$mongoose__$5b$external$5d$__$28$mongoose$2c$__cjs$2c$__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$mongoose$29$__["default"].Types.ObjectId(tenant_id),
+            userId: new __TURBOPACK__imported__module__$5b$externals$5d2f$mongoose__$5b$external$5d$__$28$mongoose$2c$__cjs$2c$__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$mongoose$29$__["default"].Types.ObjectId(id),
+            action: 'created a new task',
+            details: `Task: ${title}`
+        });
         return __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$MINE$2f$edu$2d$lead$2d$pro$2d$next$2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             id: task._id
         });

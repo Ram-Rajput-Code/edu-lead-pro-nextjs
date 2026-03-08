@@ -1,4 +1,6 @@
 {
+  "/api/activity/route": "app/api/activity/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
   "/api/leads/route": "app/api/leads/route.js",
   "/api/notifications/route": "app/api/notifications/route.js",
   "/api/settings/institute/route": "app/api/settings/institute/route.js",

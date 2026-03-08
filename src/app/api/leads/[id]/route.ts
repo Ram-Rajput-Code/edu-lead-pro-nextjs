@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import { Lead, LeadStatus, User, Notification } from '@/lib/models';
+import { Lead, LeadStatus, User, Notification, ActivityLog } from '@/lib/models';
 import { getAuthUser } from '@/lib/auth';
 import mongoose from 'mongoose';
 
@@ -45,6 +45,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         details: `Stage updated to ${status?.label || 'Unknown'}`,
         performedBy: new mongoose.Types.ObjectId(userId)
       });
+
+      // Log Activity
+      await ActivityLog.create({
+        tenantId: new mongoose.Types.ObjectId(tenant_id),
+        userId: new mongoose.Types.ObjectId(userId),
+        action: 'updated lead status',
+        details: `Lead: ${lead.name} -> ${status?.label || 'Unknown'}`
+      });
     }
     
     if (remarks !== undefined && remarks !== lead.remarks) {
@@ -63,6 +71,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         action: 'Lead Assigned',
         details: `Assigned to ${assignedUser?.name || 'Unassigned'}`,
         performedBy: new mongoose.Types.ObjectId(userId)
+      });
+
+      // Log Activity
+      await ActivityLog.create({
+        tenantId: new mongoose.Types.ObjectId(tenant_id),
+        userId: new mongoose.Types.ObjectId(userId),
+        action: 'reassigned a lead',
+        details: `Lead: ${lead.name} to ${assignedUser?.name || 'Unassigned'}`
       });
 
       if (assigned_to && assigned_to !== userId) {

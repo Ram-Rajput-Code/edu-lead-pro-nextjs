@@ -22,7 +22,7 @@ export default function RootLayout({
     Powered By <span className="font-semibold text-indigo-600">Ram IT Solutions</span>
   </div>
 </div>
-      </body>
+</body>
     </html>
   );
 }
